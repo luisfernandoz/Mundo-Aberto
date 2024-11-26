@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=10" />
+    <title>Mundo Aberto</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+      }
+      #c {
+        width: 100%;
+        height: 100%;
+        display: block;
+        background: url(resources/sky.png) no-repeat center center;
+        background-size: cover;
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./path/to/three.module.js",
+          "three/addons/": "./different/path/to/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module" src="main.js"></script>
+  </head>
+  <body>
+    <canvas id="c"></canvas>
+  </body>
+</html>
