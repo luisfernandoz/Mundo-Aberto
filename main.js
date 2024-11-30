@@ -2,11 +2,13 @@ import * as THREE from "three";
 import { GUI } from "three/addons/libs/lil-gui.module.min.js";
 
 //---------------- Criando a cena ----------------------------------
+
 const scene = new THREE.Scene();
+
 //------------------------------------------------------------------
 
 // Criando a câmera de perspectiva
-//------------------------------------------------------------------
+
 const fov = 45;
 const aspect = 2;
 const near = 0.1;
@@ -14,63 +16,54 @@ const far = 100;
 const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
 camera.position.set(10, 10, 10);
 camera.lookAt(0, 10, 0);
+
 //------------------------------------------------------------------
 
 // Criando o renderer
-//------------------------------------------------------------------
+
 const canvas = document.querySelector("#c");
 const renderer = new THREE.WebGLRenderer({
   antialias: true,
   canvas,
-  alpha: true,
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
+
 //------------------------------------------------------------------
 
 // Adicionando uma textura para o chão
-//------------------------------------------------------------------
+
 const loader = new THREE.TextureLoader();
-const planeSize = 400;
-const texture = loader.load("resources/ceram.png");
-texture.wrapS = THREE.RepeatWrapping;
-texture.wrapT = THREE.RepeatWrapping;
-texture.magFilter = THREE.NearestFilter;
-texture.colorSpace = THREE.SRGBColorSpace;
-const repeats = planeSize / 2;
-texture.repeat.set(repeats, repeats);
+const groundTexture = loader.load("resources/grass.png");
 
-const planeGeo = new THREE.PlaneGeometry(planeSize, planeSize);
-const planeMat = new THREE.MeshPhongMaterial({
-  map: texture,
-  side: THREE.DoubleSide,
+groundTexture.wrapS = THREE.RepeatWrapping;
+groundTexture.wrapT = THREE.RepeatWrapping;
+// groundTexture.repeat.set(10, 10); // Define repetições
+groundTexture.magFilter = THREE.LinearFilter;
+
+const groundMaterial = new THREE.MeshPhongMaterial({
+  map: groundTexture,
 });
-planeMat.color.setRGB(1.5, 1.5, 1.5);
 
-const mesh = new THREE.Mesh(planeGeo, planeMat);
-mesh.rotation.x = Math.PI * -0.5;
-scene.add(mesh);
+const groundGeometry = new THREE.PlaneGeometry(100, 100); // Define o tamanho
+const groundMesh = new THREE.Mesh(groundGeometry, groundMaterial);
+groundMesh.rotation.x = -Math.PI / 2; // Rotaciona para alinhar ao plano XY
+scene.add(groundMesh);
 
-const load = new THREE.TextureLoader();
-const equirectTexture = load.load("resources/sky.png");
-equirectTexture.mapping = THREE.EquirectangularReflectionMapping;
-scene.background = equirectTexture;
+// Adicionando uma textura para o céu
 
-//------------------------------------------------------------------
-
-// Load the texture for the background
+// Carregando uma única imagem como fundo
 const backgroundTexture = loader.load("resources/sky.png");
 
-// Create a large sphere geometry
-const sphereGeometry = new THREE.SphereGeometry(500, 60, 40);
-const sphereMaterial = new THREE.MeshBasicMaterial({
-  map: backgroundTexture,
-  side: THREE.BackSide,
-});
-const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+// mapeamento da textura
+backgroundTexture.mapping = THREE.EquirectangularReflectionMapping;
 
-// Add the sphere to the scene
-scene.add(sphere);
+backgroundTexture.magFilter = THREE.LinearFilter; // Suaviza a ampliação
+backgroundTexture.minFilter = THREE.LinearMipmapLinearFilter; // Melhora a redução
+backgroundTexture.colorSpace = THREE.SRGBColorSpace;
+
+// Adicionar o fundo ao cenário
+scene.background = backgroundTexture;
 
 // Adicionando luz ambiente
 //------------------------------------------------------------------
@@ -112,7 +105,7 @@ document.addEventListener("keyup", (event) => {
 });
 //------------------------------------------------------------------
 
-scene.fog = new THREE.Fog( 0x000000, 10, 15 );
+scene.fog = new THREE.Fog(0x000000, 10, 15);
 
 //------------------------------------------------------------------
 
