@@ -50,7 +50,27 @@ planeMat.color.setRGB(1.5, 1.5, 1.5);
 const mesh = new THREE.Mesh(planeGeo, planeMat);
 mesh.rotation.x = Math.PI * -0.5;
 scene.add(mesh);
+
+const load = new THREE.TextureLoader();
+const equirectTexture = load.load("resources/sky.png");
+equirectTexture.mapping = THREE.EquirectangularReflectionMapping;
+scene.background = equirectTexture;
+
 //------------------------------------------------------------------
+
+// Load the texture for the background
+const backgroundTexture = loader.load("resources/sky.png");
+
+// Create a large sphere geometry
+const sphereGeometry = new THREE.SphereGeometry(500, 60, 40);
+const sphereMaterial = new THREE.MeshBasicMaterial({
+  map: backgroundTexture,
+  side: THREE.BackSide,
+});
+const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+
+// Add the sphere to the scene
+scene.add(sphere);
 
 // Adicionando luz ambiente
 //------------------------------------------------------------------
@@ -114,18 +134,41 @@ function render(time) {
   time *= 0.001; // Converte tempo para segundos
 
   // Atualiza a posição da câmera com base nas teclas pressionadas
+  // Atualiza a posição da câmera com base na direção para onde ela está olhando
   const moveSpeed = 0.1; // Velocidade de movimento
   const rotateSpeed = 0.02; // Velocidade de rotação
 
-  if (keys["w"]) camera.position.z -= moveSpeed; // Move para frente
-  if (keys["s"]) camera.position.z += moveSpeed; // Move para trás
-  if (keys["a"]) camera.position.x -= moveSpeed; // Move para a esquerda
-  if (keys["d"]) camera.position.x += moveSpeed; // Move para a direita
+  // Vetores de direção
+  const forward = new THREE.Vector3();
+  const right = new THREE.Vector3();
+  const up = new THREE.Vector3();
 
-  if (keys["ArrowUp"]) camera.rotation.x -= rotateSpeed; // Rotaciona para cima
-  if (keys["ArrowDown"]) camera.rotation.x += rotateSpeed; // Rotaciona para baixo
-  if (keys["ArrowLeft"]) camera.rotation.y -= rotateSpeed; // Rotaciona para a esquerda
-  if (keys["ArrowRight"]) camera.rotation.y += rotateSpeed; // Rotaciona para a direita
+  // Calcula o vetor "para frente" com base na orientação da câmera
+  camera.getWorldDirection(forward);
+
+  // Calcula o vetor "para a direita" usando o cross product
+  right.crossVectors(camera.up, forward).normalize();
+
+  // Calcula o vetor "para cima" baseado no sistema de coordenadas local da câmera
+  up.copy(camera.up).normalize();
+
+  // Movimentos relativos
+  if (keys["w"]) camera.position.add(forward.multiplyScalar(moveSpeed)); // Para frente
+  if (keys["s"]) camera.position.add(forward.multiplyScalar(-moveSpeed)); // Para trás
+  if (keys["a"]) camera.position.add(right.multiplyScalar(-moveSpeed)); // Para a esquerda
+  if (keys["d"]) camera.position.add(right.multiplyScalar(moveSpeed)); // Para a direita
+  if (keys["r"]) camera.position.add(up.multiplyScalar(moveSpeed)); // Para cima
+  if (keys["f"]) camera.position.add(up.multiplyScalar(-moveSpeed)); // Para baixo
+
+  // Rotaciona a câmera
+  if (keys["ArrowUp"]) camera.rotation.x += rotateSpeed; // Rotaciona para cima
+  if (keys["ArrowDown"]) camera.rotation.x -= rotateSpeed; // Rotaciona para baixo
+  if (keys["ArrowLeft"]) camera.rotation.y += rotateSpeed; // Rotaciona para a esquerda
+  if (keys["ArrowRight"]) camera.rotation.y -= rotateSpeed; // Rotaciona para a direita
+
+  // Rola a câmera
+  if (keys["q"]) camera.rotation.z += rotateSpeed;
+  if (keys["e"]) camera.rotation.z -= rotateSpeed;
 
   // Ajusta o tamanho do renderer se necessário
   if (resizeRendererToDisplaySize(renderer)) {
