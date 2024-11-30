@@ -112,6 +112,10 @@ document.addEventListener("keyup", (event) => {
 });
 //------------------------------------------------------------------
 
+scene.fog = new THREE.Fog( 0x000000, 10, 15 );
+
+//------------------------------------------------------------------
+
 // Função para redimensionar o renderer
 //------------------------------------------------------------------
 function resizeRendererToDisplaySize(renderer) {
