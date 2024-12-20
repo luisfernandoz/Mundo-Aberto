@@ -1,18 +1,6 @@
 import * as THREE from "three";
 
-//---------------- Criando a cena ----------------------------------
-const scene = new THREE.Scene();
-
-// Criando a câmera de perspectiva
-const fov = 45;
-const aspect = 2;
-const near = 0.1;
-const far = 100;
-const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-camera.position.set(10, 10, 10);
-camera.lookAt(0, 10, 0);
-
-// Criando o renderer
+// ------------------- Configuração Inicial -------------------
 const canvas = document.querySelector("#c");
 const renderer = new THREE.WebGLRenderer({
   antialias: true,
@@ -21,116 +9,159 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// Adicionando uma textura para o chão
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0xaaaaaa, 0.1); // Cor cinza claro e densidade inicial
+
+// ------------------- Configuração da Câmera -------------------
+const fov = 45;
+const aspect = 2;
+const near = 0.1;
+const far = 100;
+const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+camera.position.set(10, 10, 10);
+camera.lookAt(0, 10, 0);
+
+// ------------------- Iluminação -------------------
+const ambientLight = new THREE.HemisphereLight(0x444444, 0x000000, 0.5);
+scene.add(ambientLight);
+
+const cameraLight = new THREE.PointLight(0xffffff, 0.8, 50);
+scene.add(cameraLight);
+
+// ------------------- Texturas e Materiais -------------------
 const loader = new THREE.TextureLoader();
+
+// Textura do chão
 const groundTexture = loader.load("resources/grass.png");
 groundTexture.wrapS = THREE.RepeatWrapping;
 groundTexture.wrapT = THREE.RepeatWrapping;
 
 const groundMaterial = new THREE.MeshPhongMaterial({ map: groundTexture });
+
+// Textura do céu
+const backgroundTexture = loader.load("resources/sky.png");
+backgroundTexture.mapping = THREE.EquirectangularReflectionMapping;
+scene.background = backgroundTexture;
+
+// Textura da parede
+const stoneTexture = loader.load("resources/stone_wall_04_diff_4k.jpg");
+stoneTexture.wrapS = THREE.RepeatWrapping;
+stoneTexture.wrapT = THREE.RepeatWrapping;
+stoneTexture.repeat.set(10, 1);
+
+const stoneBumpMap = loader.load("resources/stone_wall_04_disp_4k.png");
+stoneBumpMap.wrapS = THREE.RepeatWrapping;
+stoneBumpMap.wrapT = THREE.RepeatWrapping;
+stoneBumpMap.repeat.set(10, 1);
+
+const wallMaterial = new THREE.MeshPhongMaterial({
+  map: stoneTexture,
+  bumpMap: stoneBumpMap,
+  bumpScale: 10,
+});
+
+// Textura dos espetos
+const spikeTexture = loader.load("resources/metal.jpg");
+const spikeMaterial = new THREE.MeshStandardMaterial({
+  map: spikeTexture,
+  metalness: 0.8,
+  roughness: 0.2,
+});
+
+// ------------------- Criação dos Elementos da Cena -------------------
+// Chão
 const groundGeometry = new THREE.PlaneGeometry(100, 100);
 const groundMesh = new THREE.Mesh(groundGeometry, groundMaterial);
 groundMesh.rotation.x = -Math.PI / 2;
 scene.add(groundMesh);
 
-// Adicionando uma textura para o céu
-const backgroundTexture = loader.load("resources/sky.png");
-backgroundTexture.mapping = THREE.EquirectangularReflectionMapping;
-scene.background = backgroundTexture;
-
-// Adicionando luz ambiente
-const light = new THREE.AmbientLight(0xffffff);
-scene.add(light);
-
-// Criando os cubos
-const geometry = new THREE.BoxGeometry(1, 1, 1);
-
-function makeInstance(geometry, color, x) {
-  const material = new THREE.MeshToonMaterial({ color });
-  const cube = new THREE.Mesh(geometry, material);
-  scene.add(cube);
-  cube.position.set(x, 2, 0);
-  return cube;
-}
-
-const cubes = [
-  makeInstance(geometry, 0x44aa88, 0),
-  makeInstance(geometry, 0x8844aa, -2),
-  makeInstance(geometry, 0xaa8844, 2),
-];
-
-const stoneTexture = loader.load("resources/stone_wall_04_diff_4k.jpg");
-stoneTexture.wrapS = THREE.RepeatWrapping; // Repetir a textura na direção X
-stoneTexture.wrapT = THREE.RepeatWrapping; // Repetir a textura na direção Y
-// Wall generation with an entryway
-
-const material = new THREE.MeshPhongMaterial({ map: stoneTexture });
-
-// Criar paredes da cerca
+// Paredes
 const wallHeight = 3;
 const wallThickness = 0.8;
 const wallLength = 30;
 
-// Lado esquerdo
-const leftWallGeometry = new THREE.BoxGeometry(
-  wallThickness,
-  wallHeight,
-  wallLength
-);
-const leftWall = new THREE.Mesh(leftWallGeometry, material);
-leftWall.position.set(-wallLength / 2, wallHeight / 2, 0);
-scene.add(leftWall);
-
-// Lado direito
-const rightWallGeometry = new THREE.BoxGeometry(
-  wallThickness,
-  wallHeight,
-  wallLength
-);
-const rightWall = new THREE.Mesh(rightWallGeometry, material);
-rightWall.position.set(wallLength / 2, wallHeight / 2, 0);
-scene.add(rightWall);
-
-// Parede de trás
-const backWallGeometry = new THREE.BoxGeometry(
-  wallLength,
-  wallHeight,
-  wallThickness
-);
-const backWall = new THREE.Mesh(backWallGeometry, material);
-backWall.position.set(0, wallHeight / 2, -wallLength / 2);
-scene.add(backWall);
-
-// Adicionando névoa
-// scene.fog = new THREE.Fog(0x000000, 10, 15);
-
-// Variáveis para controle do teclado
-const keys = {
-  q: false, // Subir
-  e: false, // Descer
-  a: false, // Rotacionar para a esquerda
-  d: false, // Rotacionar para a direita
-  w: false, // Mover para frente
-  s: false, // Mover para trás
-  ArrowUp: false, // Olhar para cima
-  ArrowDown: false, // Olhar para baixo
+const createWall = (geometry, position) => {
+  const wall = new THREE.Mesh(geometry, wallMaterial);
+  wall.position.set(...position);
+  scene.add(wall);
+  return wall;
 };
 
-// Sensibilidade de movimento
-const moveSpeed = 0.2; // Velocidade de movimento vertical e frente/trás
-const rotationSpeed = 0.02; // Velocidade de rotação horizontal e vertical
+// Criar paredes
+const leftWall = createWall(
+  new THREE.BoxGeometry(wallThickness, wallHeight, wallLength),
+  [-wallLength / 2, wallHeight / 2, 0]
+);
 
-// Eventos de pressionar tecla
+const rightWall = createWall(
+  new THREE.BoxGeometry(wallThickness, wallHeight, wallLength),
+  [wallLength / 2, wallHeight / 2, 0]
+);
+
+const backWall = createWall(
+  new THREE.BoxGeometry(wallLength, wallHeight, wallThickness),
+  [0, wallHeight / 2, -wallLength / 2]
+);
+
+const frontWall = createWall(
+  new THREE.BoxGeometry(wallLength / 3, wallHeight, wallThickness),
+  [-wallLength / 3, wallHeight / 2, wallLength / 2]
+);
+
+const frontWall2 = createWall(
+  new THREE.BoxGeometry(wallLength / 3, wallHeight, wallThickness),
+  [wallLength / 3, wallHeight / 2, wallLength / 2]
+);
+
+// Espetos
+const addSpikes = (wall, numSpikes, spikeHeight, spikeRadius, direction) => {
+  for (let i = 0; i < numSpikes; i++) {
+    const spikeGeometry = new THREE.ConeGeometry(spikeRadius, spikeHeight, 4);
+    const spike = new THREE.Mesh(spikeGeometry, spikeMaterial);
+
+    if (direction === "horizontal") {
+      spike.position.x =
+        wall.position.x +
+        (i - numSpikes / 2) * (wall.geometry.parameters.width / numSpikes);
+      spike.position.z = wall.position.z;
+    } else {
+      spike.position.z =
+        wall.position.z +
+        (i - numSpikes / 2) * (wall.geometry.parameters.depth / numSpikes);
+      spike.position.x = wall.position.x;
+    }
+
+    spike.position.y =
+      wall.position.y + wall.geometry.parameters.height / 2 + spikeHeight / 2;
+
+    scene.add(spike);
+  }
+};
+
+// Adicionar espetos nas paredes
+const spikeHeight = 1;
+const spikeRadius = 0.2;
+addSpikes(backWall, 15, spikeHeight, spikeRadius, "horizontal");
+addSpikes(frontWall, 5, spikeHeight, spikeRadius, "horizontal");
+addSpikes(frontWall2, 5, spikeHeight, spikeRadius, "horizontal");
+addSpikes(leftWall, 15, spikeHeight, spikeRadius, "vertical");
+addSpikes(rightWall, 15, spikeHeight, spikeRadius, "vertical");
+
+// ------------------- Controle de Teclado -------------------
+const keys = {};
+const moveSpeed = 0.2;
+const rotationSpeed = 0.02;
+
 window.addEventListener("keydown", (event) => {
-  if (keys.hasOwnProperty(event.key)) keys[event.key] = true;
+  keys[event.key] = true;
 });
 
 window.addEventListener("keyup", (event) => {
-  if (keys.hasOwnProperty(event.key)) keys[event.key] = false;
+  keys[event.key] = false;
 });
 
-// Função para redimensionar o renderer
-function resizeRendererToDisplaySize(renderer) {
+// ------------------- Funções Auxiliares -------------------
+const resizeRendererToDisplaySize = (renderer) => {
   const canvas = renderer.domElement;
   const pixelRatio = window.devicePixelRatio;
   const width = Math.floor(canvas.clientWidth * pixelRatio);
@@ -141,10 +172,10 @@ function resizeRendererToDisplaySize(renderer) {
     renderer.setSize(width, height, false);
   }
   return needResize;
-}
+};
 
-// Função de renderização
-function render(time) {
+// ------------------- Loop de Renderização -------------------
+const render = (time) => {
   time *= 0.001;
 
   if (resizeRendererToDisplaySize(renderer)) {
@@ -153,45 +184,33 @@ function render(time) {
     camera.updateProjectionMatrix();
   }
 
-  // Atualizar posição e rotação da câmera com base nas teclas pressionadas
-  if (keys.q) camera.position.y += moveSpeed; // Subir
-  if (keys.e) camera.position.y -= moveSpeed; // Descer
-  if (keys.a) camera.rotation.y += rotationSpeed; // Girar para a esquerda
-  if (keys.d) camera.rotation.y -= rotationSpeed; // Girar para a direita
+  if (keys.q) camera.position.y += moveSpeed;
+  if (keys.e) camera.position.y -= moveSpeed;
+  if (keys.a) camera.rotation.y += rotationSpeed;
+  if (keys.d) camera.rotation.y -= rotationSpeed;
 
-  // Controle da câmera em relação à direção atual
-  const pitchAxis = new THREE.Vector3(1, 0, 0); // Eixo para pitch (subir/descer)
-  camera.rotation.order = "YXZ"; // Ordem correta para pitch e yaw
-
-  if (keys.ArrowUp) {
-    camera.rotation.x += rotationSpeed; // Girar para cima
-  }
-  if (keys.ArrowDown) {
-    camera.rotation.x -= rotationSpeed; // Girar para baixo
-  }
-
-  // Movimento para frente e para trás
   const direction = new THREE.Vector3();
   camera.getWorldDirection(direction);
 
-  if (keys.w) {
-    camera.position.add(direction.clone().multiplyScalar(moveSpeed)); // Frente
+  if (keys.w) camera.position.add(direction.clone().multiplyScalar(moveSpeed));
+  if (keys.s) camera.position.add(direction.clone().multiplyScalar(-moveSpeed));
+
+  camera.rotation.order = "YXZ";
+
+  if (keys.ArrowUp) {
+    camera.rotation.x += rotationSpeed;
   }
-  if (keys.s) {
-    camera.position.add(direction.clone().multiplyScalar(-moveSpeed)); // Trás
+  if (keys.ArrowDown) {
+    camera.rotation.x -= rotationSpeed;
   }
 
-  cubes.forEach((cube, ndx) => {
-    const speed = 1 + ndx * 0.1;
-    const rot = time * speed;
-    cube.rotation.x = rot;
-    cube.rotation.y = rot;
-  });
+  cameraLight.position.copy(camera.position);
 
   renderer.render(scene, camera);
   requestAnimationFrame(render);
-}
+};
 
+// ------------------- Eventos de Redimensionamento -------------------
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
