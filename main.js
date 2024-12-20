@@ -59,8 +59,50 @@ const cubes = [
   makeInstance(geometry, 0xaa8844, 2),
 ];
 
+const stoneTexture = loader.load("resources/stone_wall_04_diff_4k.jpg");
+stoneTexture.wrapS = THREE.RepeatWrapping; // Repetir a textura na direção X
+stoneTexture.wrapT = THREE.RepeatWrapping; // Repetir a textura na direção Y
+// Wall generation with an entryway
+
+const material = new THREE.MeshPhongMaterial({ map: stoneTexture });
+
+// Criar paredes da cerca
+const wallHeight = 3;
+const wallThickness = 0.8;
+const wallLength = 30;
+
+// Lado esquerdo
+const leftWallGeometry = new THREE.BoxGeometry(
+  wallThickness,
+  wallHeight,
+  wallLength
+);
+const leftWall = new THREE.Mesh(leftWallGeometry, material);
+leftWall.position.set(-wallLength / 2, wallHeight / 2, 0);
+scene.add(leftWall);
+
+// Lado direito
+const rightWallGeometry = new THREE.BoxGeometry(
+  wallThickness,
+  wallHeight,
+  wallLength
+);
+const rightWall = new THREE.Mesh(rightWallGeometry, material);
+rightWall.position.set(wallLength / 2, wallHeight / 2, 0);
+scene.add(rightWall);
+
+// Parede de trás
+const backWallGeometry = new THREE.BoxGeometry(
+  wallLength,
+  wallHeight,
+  wallThickness
+);
+const backWall = new THREE.Mesh(backWallGeometry, material);
+backWall.position.set(0, wallHeight / 2, -wallLength / 2);
+scene.add(backWall);
+
 // Adicionando névoa
-scene.fog = new THREE.Fog(0x000000, 10, 15);
+// scene.fog = new THREE.Fog(0x000000, 10, 15);
 
 // Variáveis para controle do teclado
 const keys = {
