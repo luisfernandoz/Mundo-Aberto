@@ -1,6 +1,7 @@
 import * as THREE from "three";
-import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
-import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader';
+import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader";
+import { MTLLoader } from "three/examples/jsm/loaders/MTLLoader";
+import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader";
 
 // ------------------- Configuração Inicial -------------------
 const canvas = document.querySelector("#c");
@@ -8,6 +9,9 @@ const renderer = new THREE.WebGLRenderer({
   antialias: true,
   canvas,
 });
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Sombras mais suaves
+
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
@@ -28,6 +32,8 @@ const ambientLight = new THREE.HemisphereLight(0x444444, 0x000000, 0.5);
 scene.add(ambientLight);
 
 const cameraLight = new THREE.PointLight(0xffffff, 0.8, 50);
+cameraLight.castShadow = true;
+cameraLight.shadow.mapSize.width = 1024;
 scene.add(cameraLight);
 
 // ------------------- Texturas e Materiais -------------------
@@ -71,60 +77,118 @@ const spikeMaterial = new THREE.MeshStandardMaterial({
 });
 
 // ------------------- Criação dos Elementos da Cena -------------------
-// Lapide
-const mtlLoader = new MTLLoader();
-  const objLoader = new OBJLoader();
-  const createGrave = (position) => {
-    mtlLoader.load('objs/Grave.mtl', (materials) => {
-      materials.preload();
-  
-      const objLoader = new OBJLoader();
-      objLoader.setMaterials(materials);
-  
-      objLoader.load('objs/Grave.obj', (object) => {
-        object.position.set(...position);
-        scene.add(object);
+
+const fbxLoader = new FBXLoader();
+const textureLoader = new THREE.TextureLoader();
+
+// Carregar a textura
+const texture = textureLoader.load("objs/Candle_Sketchfab_Export_Albedo.png"); // Ajuste o caminho da textura
+
+const createCandle = (position) => {
+  fbxLoader.load(
+    "objs/Candle UV Baked 23-11.FBX",
+    (object) => {
+      // Aplicar a textura aos materiais do modelo
+      object.traverse((child) => {
+        if (child.isMesh) {
+          child.material.map = texture;
+          child.material.needsUpdate = true;
+          child.castShadow = true; // Lança sombra
+          child.receiveShadow = true; // Recebe sombra
+        }
       });
-    });
-  };
-  
-  // Criar vários tumulos
-  const gravePositions = [
-    [0, 0.5, 0],
-    [5, 0.7, 0],
-    [10, 0.3, 0],
-    [-5, 1, 0],
-    [-10, 0.8, 0],
-    [0, 0.7, -5],
-    [5, 0.6, -5],
-    [10, 1, -5],
-    [-5, 0.26, -5],
-    [-10, 0.95, -5],
-    [0, 0.15, -10],
-    [5, 0.55, -10],
-    [10, 0.64, -10],
-    [-5, 0.47, -10],
-    [-10, 0.72, -10],
-  ];
-  
-  gravePositions.forEach((position) => {
-    createGrave(position);
-  });
-  
 
+      // Reduzir o tamanho do modelo (ajuste conforme necessário)
+      object.scale.set(0.07, 0.07, 0.07); // Reduz a escala do modelo para 10% do tamanho original
 
-//arvore
-// Função para carregar e posicionar árvores
-const createTree = (position) => {
-  mtlLoader.load('objs/Tree.mtl', (materials) => {
+      // Adicionar o modelo à cena
+      scene.add(object);
+      object.position.set(...position);
+
+      // Criar a luz de vela (luz pontual laranja)
+      const candleLight = new THREE.PointLight(0xffa500, 70, 4);
+      candleLight.position.set(position[0] - 1, position[1] + 3, position[2]); // Posicionar acima da vela
+      candleLight.castShadow = true;
+      scene.add(candleLight);
+    },
+    (xhr) => {
+      console.log(`${(xhr.loaded / xhr.total) * 100} % carregado`);
+    },
+    (error) => {
+      console.error("Erro ao carregar o modelo:", error);
+    }
+  );
+};
+
+// Posições das velas
+const candlePositions = [
+  [3, 0, 1],
+  [8, 0, 1],
+  [6, 0, -4],
+  [-7, 0, -4],
+  [2, 0, -9],
+  [10, 0, -9],
+  [-10, 0, -9],
+];
+
+candlePositions.forEach((position) => {
+  createCandle(position);
+});
+
+const mtlLoader = new MTLLoader();
+const createGrave = (position) => {
+  mtlLoader.load("objs/Grave.mtl", (materials) => {
     materials.preload();
 
     const objLoader = new OBJLoader();
     objLoader.setMaterials(materials);
 
-    objLoader.load('objs/Tree.obj', (object) => {
+    objLoader.load("objs/Grave.obj", (object) => {
       object.position.set(...position);
       scene.add(object);
+      object.castShadow = true; // Lança sombra
+      object.receiveShadow = true; // Recebe sombra
+    });
+  });
+};
+
+// Criar vários tumulos
+const gravePositions = [
+  [0, 0.5, 0],
+  [5, 0.7, 0],
+  [10, 0.3, 0],
+  [-5, 1, 0],
+  [-10, 0.8, 0],
+  [0, 0.7, -5],
+  [5, 0.6, -5],
+  [10, 1, -5],
+  [-5, 0.26, -5],
+  [-10, 0.95, -5],
+  [0, 0.15, -10],
+  [5, 0.55, -10],
+  [10, 0.64, -10],
+  [-5, 0.47, -10],
+  [-10, 0.72, -10],
+];
+
+gravePositions.forEach((position) => {
+  createGrave(position);
+});
+
+//arvore
+// Função para carregar e posicionar árvores
+const createTree = (position) => {
+  mtlLoader.load("objs/Tree.mtl", (materials) => {
+    materials.preload();
+
+    const objLoader = new OBJLoader();
+    objLoader.setMaterials(materials);
+
+    objLoader.load("objs/Tree.obj", (object) => {
+      object.position.set(...position);
+      scene.add(object);
+      object.castShadow = true; // Lança sombra
+      object.receiveShadow = true; // Recebe sombra
     });
   });
 };
@@ -153,18 +217,18 @@ const treePositions = [
   [-34, 0, -24],
   [-22, 0, 13],
   [-23, 0, -14],
-  [24, 0, 16]
+  [24, 0, 16],
 ];
 
 treePositions.forEach((position) => {
   createTree(position);
 });
 
-
 // Chão
 const groundGeometry = new THREE.PlaneGeometry(100, 100);
 const groundMesh = new THREE.Mesh(groundGeometry, groundMaterial);
 groundMesh.rotation.x = -Math.PI / 2;
+groundMesh.receiveShadow = true; // Recebe sombra
 scene.add(groundMesh);
 
 // Paredes
@@ -178,8 +242,6 @@ const createWall = (geometry, position) => {
   scene.add(wall);
   return wall;
 };
-
-
 
 // Criar paredes
 const leftWall = createWall(
