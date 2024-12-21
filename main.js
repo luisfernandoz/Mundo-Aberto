@@ -1,4 +1,6 @@
 import * as THREE from "three";
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
+import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader';
 
 // ------------------- Configuração Inicial -------------------
 const canvas = document.querySelector("#c");
@@ -69,6 +71,96 @@ const spikeMaterial = new THREE.MeshStandardMaterial({
 });
 
 // ------------------- Criação dos Elementos da Cena -------------------
+// Lapide
+const mtlLoader = new MTLLoader();
+  const objLoader = new OBJLoader();
+  const createGrave = (position) => {
+    mtlLoader.load('objs/Grave.mtl', (materials) => {
+      materials.preload();
+  
+      const objLoader = new OBJLoader();
+      objLoader.setMaterials(materials);
+  
+      objLoader.load('objs/Grave.obj', (object) => {
+        object.position.set(...position);
+        scene.add(object);
+      });
+    });
+  };
+  
+  // Criar vários tumulos
+  const gravePositions = [
+    [0, 0.5, 0],
+    [5, 0.7, 0],
+    [10, 0.3, 0],
+    [-5, 1, 0],
+    [-10, 0.8, 0],
+    [0, 0.7, -5],
+    [5, 0.6, -5],
+    [10, 1, -5],
+    [-5, 0.26, -5],
+    [-10, 0.95, -5],
+    [0, 0.15, -10],
+    [5, 0.55, -10],
+    [10, 0.64, -10],
+    [-5, 0.47, -10],
+    [-10, 0.72, -10],
+  ];
+  
+  gravePositions.forEach((position) => {
+    createGrave(position);
+  });
+  
+
+
+//arvore
+// Função para carregar e posicionar árvores
+const createTree = (position) => {
+  mtlLoader.load('objs/Tree.mtl', (materials) => {
+    materials.preload();
+
+    const objLoader = new OBJLoader();
+    objLoader.setMaterials(materials);
+
+    objLoader.load('objs/Tree.obj', (object) => {
+      object.position.set(...position);
+      scene.add(object);
+    });
+  });
+};
+
+// Criar várias árvores
+const treePositions = [
+  [0, 0, -17],
+  [18, 0, -18],
+  [-17, 0, 20],
+  [18, 0, -5],
+  [-17, 0, -5],
+  [20, 0, -10],
+  [32, 0, 12],
+  [-20, 0, 19],
+  [-17, 0, 25],
+  [23, 0, -10],
+  [35, 0, 10],
+  [-26, 0, -17],
+  [31, 0, 25],
+  [17, 0, 15],
+  [-17, 0, 23],
+  [19, 0, 19],
+  [21, 0, 23],
+  [-19, 0, 16],
+  [28, 0, -5],
+  [-34, 0, -24],
+  [-22, 0, 13],
+  [-23, 0, -14],
+  [24, 0, 16]
+];
+
+treePositions.forEach((position) => {
+  createTree(position);
+});
+
+
 // Chão
 const groundGeometry = new THREE.PlaneGeometry(100, 100);
 const groundMesh = new THREE.Mesh(groundGeometry, groundMaterial);
@@ -86,6 +178,8 @@ const createWall = (geometry, position) => {
   scene.add(wall);
   return wall;
 };
+
+
 
 // Criar paredes
 const leftWall = createWall(
